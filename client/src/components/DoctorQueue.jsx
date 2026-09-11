@@ -16,7 +16,7 @@ const DoctorQueue = () => {
       const fetchQueue = async () =>{
        try{
         setQueueLoading(true);
-        const response= await fetch("http://localhost:8000/api/queue");
+        const response= await fetch("http://localhost:8000/api/doc/queue");
         if(!response.ok){
             throw new Error("Can't Load queue");
         }
@@ -41,7 +41,7 @@ const DoctorQueue = () => {
           setNextError("");
           setNextLoading(true);
         
-        const response= await fetch("http://localhost:8000/api/queue/next",{
+        const response= await fetch("http://localhost:8000/api/doc/next",{
             method: "POST",
         });
 
@@ -54,7 +54,7 @@ const DoctorQueue = () => {
         
 
 
-        const response2= await fetch("http://localhost:8000/api/queue");
+        const response2= await fetch("http://localhost:8000/api/doc/queue");
         if(!response2.ok){
             throw new Error("Can't fetch queue Please try again");
         }

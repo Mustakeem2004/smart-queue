@@ -31,12 +31,12 @@ const PatientQueue = () => {
       })
       
       if(!response.ok){
-          setError("Can't join queue please try again");
+          setError("Can't join queue please try againnnnnn");
           return;
         }
       const result = await response.json();
 
-      const response2= await fetch(`http://localhost:8000/api/queue/status/${result.patient.token}`)
+      const response2= await fetch(`http://localhost:8000/api/queue/info/${result.patient.token}`)
       const res=await response2.json();
 
       if(!response2.ok){

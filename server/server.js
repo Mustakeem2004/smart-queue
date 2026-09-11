@@ -1,5 +1,8 @@
 import express from "express"
 import cors from "cors"
+import connectDB from "./config/db.js";
+import patientRoute from "./routes/patientRoutes.js"
+import doctorRoute from "./routes/doctorRoutes.js"
 import dotenv from "dotenv"
 dotenv.config();
 
@@ -11,128 +14,130 @@ app.use(cors({
     credentials: true
 }))
 
-
-
-
 let nextToken = 1;
 let queue = [];
 
-app.post("/api/queue/join", (req, res) => {
-  const { name } = req.body;
+app.use("/api/queue",patientRoute);
+app.use("/api/doc",doctorRoute);
 
-  const patient = {
-    token: nextToken,
-    name: name,
-    status: "WAITING"
-  };
+// app.post("/api/queue/join", (req, res) => {
+//   const { name } = req.body;
 
-  queue.push(patient);
+//   const patient = {
+//     token: nextToken,
+//     name: name,
+//     status: "WAITING"
+//   };
 
-  nextToken++;
+//   queue.push(patient);
 
-  res.json({
-    message: "Joined queue successfully",
-    patient: patient
-  });
-});
+//   nextToken++;
 
-
-let currentToken = 0;
-
-
-app.post("/api/queue/next", (req, res) => {
-
-  const InservicePatient = queue.find((patient) => {
-    return patient.status === "IN_SERVICE";
-  });
-
-  if(InservicePatient){
-     InservicePatient.status = "COMPLETED";
-  }
-
-  const nextPatient = queue.find((patient) => {
-    return patient.status === "WAITING"
-  }
-  );
-
-  if (!nextPatient) {
-    return res.status(400).json({
-      message: "No patients waiting"
-    });
-  }
-
-  nextPatient.status = "IN_SERVICE";
-  currentToken = nextPatient.token;
-
-  res.json({
-    message: "Patient called",
-    currentToken: currentToken,
-    patient: nextPatient
-  });
-});
+//   res.json({
+//     message: "Joined queue successfully",
+//     patient: patient
+//   });
+// });
 
 
+// let currentToken = 0;
 
 
+// app.post("/api/queue/next", (req, res) => {
 
-app.get("/api/queue",(req,res)=>{
-    res.json(queue);
-})
+//   const InservicePatient = queue.find((patient) => {
+//     return patient.status === "IN_SERVICE";
+//   });
+
+//   if(InservicePatient){
+//      InservicePatient.status = "COMPLETED";
+//   }
+
+//   const nextPatient = queue.find((patient) => {
+//     return patient.status === "WAITING"
+//   }
+//   );
+
+//   if (!nextPatient) {
+//     return res.status(400).json({
+//       message: "No patients waiting"
+//     });
+//   }
+
+//   nextPatient.status = "IN_SERVICE";
+//   currentToken = nextPatient.token;
+
+//   res.json({
+//     message: "Patient called",
+//     currentToken: currentToken,
+//     patient: nextPatient
+//   });
+// });
 
 
 
-app.get("/api/queue/status/:token",(req,res)=>{
-        const userToken= Number(req.params.token);
-        const patient = queue.find((q) => q.token === userToken);
 
-        if (!patient) {
-            return res.status(404).json({
-            message: "Patient not found"
-        });
-        }
-        const peopleAhead = queue.filter((q) => {
-            return q.status === "WAITING" && q.token < userToken;
-            }).length;
 
-        res.json({
-         token: patient.token,
-         name: patient.name,
-         status: patient.status,
-         currentToken: currentToken,
-         peopleAhead: peopleAhead
-        });
-})
+// app.get("/api/queue",(req,res)=>{
+//     res.json(queue);
+// })
 
 
 
-app.post("/api/queue/cancel/:token",(req,res)=>{
-    const userToken = Number(req.params.token);
-    const patient=queue.find((q) => q.token===userToken);
-    if(!patient){
-        return res.status(404).json({"message" : "Patient not found"});
-    }
+// app.get("/api/queue/status/:token",(req,res)=>{
+//         const userToken= Number(req.params.token);
+//         const patient = queue.find((q) => q.token === userToken);
 
-    if(patient.status==="WAITING"){
-        patient.status = "CANCELLED";
-    }
-    else{
-        return res.status(400).json({"message" : "user is not in waiting"})
-    }
+//         if (!patient) {
+//             return res.status(404).json({
+//             message: "Patient not found"
+//         });
+//         }
+//         const peopleAhead = queue.filter((q) => {
+//             return q.status === "WAITING" && q.token < userToken;
+//             }).length;
 
-    res.json({
-       token: userToken,
-       name:  patient.name,
-       status: patient.status,
-       currentToken: currentToken
-    })
+//         res.json({
+//          token: patient.token,
+//          name: patient.name,
+//          status: patient.status,
+//          currentToken: currentToken,
+//          peopleAhead: peopleAhead
+//         });
+// })
+
+
+
+// app.post("/api/queue/cancel/:token",(req,res)=>{
+//     const userToken = Number(req.params.token);
+//     const patient=queue.find((q) => q.token===userToken);
+//     if(!patient){
+//         return res.status(404).json({"message" : "Patient not found"});
+//     }
+
+//     if(patient.status==="WAITING"){
+//         patient.status = "CANCELLED";
+//     }
+//     else{
+//         return res.status(400).json({"message" : "user is not in waiting"})
+//     }
+
+//     res.json({
+//        token: userToken,
+//        name:  patient.name,
+//        status: patient.status,
+//        currentToken: currentToken
+//     })
 
     
-})
+// })
 
 
 
 
 
-app.listen(8000,()=>{
-    console.log("server started at port 8000");
-})
+connectDB().then(() => {
+  app.listen(8000, () => {
+    console.log(`Server running on port 8000`);
+  });
+});

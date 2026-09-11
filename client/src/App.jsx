@@ -5,8 +5,8 @@ import DoctorQueue from './components/DoctorQueue'
 const App = () => {
   return (
     <div>
-      {/* <PatientQueue></PatientQueue> */}
-      <DoctorQueue></DoctorQueue>
+      <PatientQueue></PatientQueue>
+      {/* <DoctorQueue></DoctorQueue> */}
       
     </div>
   )
