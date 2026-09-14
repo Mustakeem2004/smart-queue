@@ -1,4 +1,5 @@
 import Patient from "../models/Patient.js";
+import redisClient from "../config/redis.js";
 
 
 export const handleJoin = async (req,res) =>{
@@ -16,6 +17,8 @@ export const handleJoin = async (req,res) =>{
             token: newToken,
             name: name,
         }) 
+
+        await redisClient.rPush("queue:waiting", patient.token.toString());
 
 
         res.status(201).json({
@@ -48,14 +51,16 @@ export const getPatientInfo = async (req,res)=>{
             token: { $lt: userToken }
         });
 
-        
-
-
+        const InServicePatient= await Patient.findOne({status: "IN_SERVICE"});
+        let InServiceUserToken=0;
+        if(InServicePatient){
+            InServiceUserToken = InServicePatient.token;
+        }
         res.json({
          token: patient.token,
          name: patient.name,
          status: patient.status,
-         currentToken: 0,
+         InServiceUserToken: InServiceUserToken,
          peopleAhead: peopleAhead
         });
 
@@ -81,6 +86,7 @@ export const cancelPatient= async(req,res) =>{
         }
         if(patient.status === 'WAITING'){
             patient.status="CANCELLED"
+            patient.cancelledAt = new Date();
             await patient.save();
         }
         else{

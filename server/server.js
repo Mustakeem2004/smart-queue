@@ -3,6 +3,7 @@ import cors from "cors"
 import connectDB from "./config/db.js";
 import patientRoute from "./routes/patientRoutes.js"
 import doctorRoute from "./routes/doctorRoutes.js"
+import redisClient from "./config/redis.js";
 import dotenv from "dotenv"
 dotenv.config();
 
@@ -136,8 +137,21 @@ app.use("/api/doc",doctorRoute);
 
 
 
-connectDB().then(() => {
-  app.listen(8000, () => {
-    console.log(`Server running on port 8000`);
-  });
-});
+
+
+const startServer = async () =>{
+  try{
+    await connectDB();
+    await redisClient.connect();
+    console.log("Redis connected");
+
+    app.listen(8000, () => {
+      console.log(`Server running on port 8000`);
+    });
+  }
+  catch(error){
+    console.error("Server startup error:", error.message);
+  }
+}
+
+startServer();
