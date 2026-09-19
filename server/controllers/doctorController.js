@@ -1,194 +1,257 @@
-import Patient from "../models/Patient.js";
-import redisClient from "../config/redis.js";
+import Doctor from "../models/Doctor.js";
+import Hospital from "../models/Hospital.js";
 
-// export const handleNext = async (req,res) =>{
-//     try{
-//         const patient = await Patient.findOne({status: "IN_SERVICE"});
-//         if(patient){
-//             patient.status="COMPLETED";
-//             patient.completedAt = new Date();
-//             await patient.save();
-//         }
+export const createDoctor = async (req, res) => {
+    try {
+        const {
+            name,
+            specialization,
+            roomNumber,
+            consultationTime,
+            hospitalId,
+        } = req.body;
 
-//         const nextToken = await redisClient.lPop("queue:waiting");
-//         if (!nextToken) {
-//             return res.status(200).json({
-//             message: "No waiting patient found",
-//         });
-//         }
+        if (!name || !specialization) {
+            return res.status(400).json({
+                message: "Name and specialization are required"
+            });
+        }
 
-//         const tokenNumber = Number(nextToken);
-//         const nextPatient = await Patient.findOne({ token: tokenNumber });
-//         if (!nextPatient) {
-//             return res.status(404).json({
-//             message: "Patient not found in MongoDB",
-//         });
-//         }
+        let singleHospitalId;
 
-//         // const patient2 = await Patient.findOne({status: "WAITING"}).sort({token: 1})
-//         // if(!patient2){
-//         //     return res.status(400).json({message:"No waiting patient found"});
-//         // }
-//         if(nextPatient.status !== "WAITING"){
-//             return res.status(409).json({message :"Redis data is inconsistent"})
-//         }
+        if (req.user.role === "PLATFORM_ADMIN") {
+            singleHospitalId = hospitalId;
 
-//         nextPatient.status="IN_SERVICE";
-//         nextPatient.serviceStartedAt = new Date();
-//         await nextPatient.save();
+            if (!singleHospitalId) {
+                return res.status(400).json({
+                    message: "hospitalId is required"
+                });
+            }
+        } else {
+            singleHospitalId = req.user.hospitalId;
+            if (!singleHospitalId) {
+                return res.status(400).json({
+                    message: "Hospital information missing"
+                });
+            }
+        }
 
-//         return res.status(200).json({
-//             nextPatient
-//         })
+        const hospital = await Hospital.findById(singleHospitalId);
 
-//     }
-//     catch(e){
-//         return res.status(500).json({message: "Error cannot do next"})
+        if (!hospital) {
+            return res.status(404).json({
+                message: "Hospital not found"
+            });
+        }
 
-//     }
-// }
+        const doctor = await Doctor.create({
+            name,
+            specialization,
+            hospitalId: singleHospitalId,
+            roomNumber,
+            consultationTime
+        });
 
-export const handleNext = async (req, res) => {
-  try {
-    // 1. Current IN_SERVICE patient find karo
-    const currentPatient = await Patient.findOne({
-      status: "IN_SERVICE",
-    });
+        return res.status(201).json({
+            message: "Doctor created successfully",
+            doctor
+        });
 
-    // 2. Current patient ko complete karo
-    if (currentPatient) {
-      currentPatient.status = "COMPLETED";
-      currentPatient.completedAt = new Date();
+    } catch (error) {
+        console.error("Create doctor error:", error);
 
-      await currentPatient.save();
-    }
-
-    // 3. Redis se next waiting token dekho
-    // Abhi remove nahi kar rahe, sirf check kar rahe hain
-    const nextToken = await redisClient.lIndex("queue:waiting", 0);
-
-    // 4. Agar next patient nahi hai
-    if (!nextToken) {
-      return res.status(200).json({
-        message: "Current patient completed, queue is empty",
-        completedPatient: currentPatient,
-        nextPatient: null,
-      });
-    }
-
-    // 5. Redis token ko number mein convert karo
-    const tokenNumber = Number(nextToken);
-
-    // 6. MongoDB mein next patient find karo
-    const nextPatient = await Patient.findOne({
-      token: tokenNumber,
-      status: "WAITING",
-    });
-
-    // 7. Redis aur MongoDB data mismatch
-    if (!nextPatient) {
-      return res.status(409).json({
-        message: "Redis and MongoDB data are inconsistent",
-      });
-    }
-
-    // 8. Next patient ko IN_SERVICE karo
-    nextPatient.status = "IN_SERVICE";
-    nextPatient.serviceStartedAt = new Date();
-
-    await nextPatient.save();
-
-    // 9. MongoDB update successful hone ke baad
-    // Redis se first waiting token remove karo
-    await redisClient.lPop("queue:waiting");
-
-    // 10. Final response
-    return res.status(200).json({
-      message: "Next patient called successfully",
-      completedPatient: currentPatient,
-      nextPatient: nextPatient,
-    });
-  } catch (error) {
-    console.error("Handle next error:", error);
-
-    return res.status(500).json({
-      message: "Error while calling next patient",
-    });
-  }
-};
-
-export const getQueue = async (req, res) => {
-  try {
-    const patients = await Patient.find();
-    res.json(patients);
-  } catch (error) {
-    res.status(500).json({ message: "Cannot get the Patients" });
-  }
-};
-
-export const skipPatient = async (req, res) => {
-  try {
-    const patient = await Patient.findOne({ status: "IN_SERVICE" });
-    if (!patient) {
-      return res.status(404).json({ message: "No patient is currently in service" });
-    }
-    if (patient) {
-      patient.status = "SKIPPED";
-      patient.skippedAt = new Date();
-      await patient.save();
-    }
-    const nextToken = await redisClient.lIndex("queue:waiting", 0);
-    if (!nextToken) {
-        return res.status(200).json({
-            message: "Current patient skipped, queue is empty",
-            completedPatient: patient,
-            nextPatient: null,
+        return res.status(500).json({
+            message: "Cannot create doctor"
         });
     }
-    const tokenNumber = Number(nextToken);
-    const nextPatient = await Patient.findOne({token:tokenNumber,status:"WAITING"});
-    if (!nextPatient) {
-      return res.status(409).json({ message: "inconsistency between redis and mongodb" });
-    }
-
-    nextPatient.status = "IN_SERVICE";
-    nextPatient.serviceStartedAt = new Date();
-    await nextPatient.save();
-
-    await redisClient.lPop("queue:waiting");
-
-    return res.status(200).json({
-      message: "Patient skipped and next patient called",
-      skippedPatient: patient,
-      nextPatient: nextPatient,
-    });
-    } catch (error) {
-    console.error("Skip patient error:", error);
-
-    return res.status(500).json({
-      message: "Cannot skip patient",
-    });
-  }
 };
 
-export const getQueueStats = async (req, res) => {
-  try {
-    const totalPatients = await Patient.countDocuments();
-    const inService = await Patient.countDocuments({ status: "IN_SERVICE" });
-    const waiting = await Patient.countDocuments({ status: "WAITING" });
-    const completed = await Patient.countDocuments({ status: "COMPLETED" });
-    const cancelled = await Patient.countDocuments({ status: "CANCELLED" });
-    const skipped = await Patient.countDocuments({ status: "SKIPPED" });
 
-    return res.status(200).json({
-      totalPatients,
-      waiting,
-      inService,
-      completed,
-      cancelled,
-      skipped,
-    });
-  } catch (e) {
-    return res.status(500).json({ message: "Cannot get the Patients" });
-  }
+
+export const getDoctors = async (req, res) => {
+    try {
+        let doctors;
+
+        if (req.user.role === "PLATFORM_ADMIN") {
+            doctors = await Doctor.find()
+                .populate("hospitalId", "name");
+        } else {
+            const hospitalId = req.user.hospitalId;
+
+            if (!hospitalId) {
+                return res.status(400).json({
+                    message: "Hospital information missing"
+                });
+            }
+
+            doctors = await Doctor.find({
+                hospitalId
+            });
+        }
+
+        return res.status(200).json({
+            message: "Doctors fetched successfully",
+            doctors
+        });
+
+    } catch (error) {
+        console.error("Get doctors error:", error);
+
+        return res.status(500).json({
+            message: "Cannot fetch doctors"
+        });
+    }
+};
+
+
+
+export const getDoctorById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const doctor = await Doctor.findById(id);
+
+        if (!doctor) {
+            return res.status(404).json({
+                message: "Doctor not found"
+            });
+        }
+
+        if (req.user.role !== "PLATFORM_ADMIN") {
+            if (
+                doctor.hospitalId.toString() !==
+                req.user.hospitalId.toString()
+            ) {
+                return res.status(403).json({
+                    message: "You are not authorized to access this doctor"
+                });
+            }
+        }
+
+        return res.status(200).json({
+            message: "Doctor fetched successfully",
+            doctor
+        });
+
+    } catch (error) {
+        console.error("Get doctor error:", error);
+
+        return res.status(500).json({
+            message: "Cannot fetch doctor"
+        });
+    }
+};
+
+
+
+
+export const updateDoctor = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const {
+            name,
+            specialization,
+            roomNumber,
+            consultationTime,
+            isActive
+        } = req.body;
+
+        const doctor = await Doctor.findById(id);
+
+        if (!doctor) {
+            return res.status(404).json({
+                message: "Doctor not found"
+            });
+        }
+
+        if (req.user.role !== "PLATFORM_ADMIN") {
+            if (
+                doctor.hospitalId.toString() !==
+                req.user.hospitalId.toString()
+            ) {
+                return res.status(403).json({
+                    message: "You are not authorized to update this doctor"
+                });
+            }
+        }
+
+        if (name !== undefined) {
+            doctor.name = name;
+        }
+
+        if (specialization !== undefined) {
+            doctor.specialization = specialization;
+        }
+
+        if (roomNumber !== undefined) {
+            doctor.roomNumber = roomNumber;
+        }
+
+        if (consultationTime !== undefined) {
+            doctor.consultationTime = consultationTime;
+        }
+
+        if (isActive !== undefined) {
+            doctor.isActive = isActive;
+        }
+
+        await doctor.save();
+
+        return res.status(200).json({
+            message: "Doctor updated successfully",
+            doctor
+        });
+
+    } catch (error) {
+        console.error("Update doctor error:", error);
+
+        return res.status(500).json({
+            message: "Cannot update doctor"
+        });
+    }
+};
+
+
+
+
+export const deactivateDoctor = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const doctor = await Doctor.findById(id);
+
+        if (!doctor) {
+            return res.status(404).json({
+                message: "Doctor not found"
+            });
+        }
+
+        if (req.user.role !== "PLATFORM_ADMIN") {
+            if (
+                doctor.hospitalId.toString() !==
+                req.user.hospitalId.toString()
+            ) {
+                return res.status(403).json({
+                    message: "You are not authorized to deactivate this doctor"
+                });
+            }
+        }
+
+        doctor.isActive = false;
+
+        await doctor.save();
+
+        return res.status(200).json({
+            message: "Doctor deactivated successfully",
+            doctor
+        });
+
+    } catch (error) {
+        console.error("Deactivate doctor error:", error);
+
+        return res.status(500).json({
+            message: "Cannot deactivate doctor"
+        });
+    }
 };

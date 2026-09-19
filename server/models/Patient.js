@@ -1,40 +1,22 @@
 import mongoose from "mongoose";
 
-
-const patientSchema = new  mongoose.Schema(
+const patientSchema = new mongoose.Schema(
     {
-        token: {
-            type: Number
-        },
         name: {
-            type: String
-        },
-        status:{
             type: String,
-            enum: ["WAITING","IN_SERVICE","COMPLETED","CANCELLED","SKIPPED"],
-            default: "WAITING"
+            required: true,
+            trim: true
         },
-        serviceStartedAt: {
-            type: Date
 
-        },
-        completedAt: {
-            type: Date
-
-        },
-        cancelledAt: {
-            type: Date
-
-        },
-        skippedAt:{
-            type: Date
+        phone: {
+            type: String,
+            required: true,
+            trim: true
         }
+    },
+    {
+        timestamps: true
+    }
+);
 
-
-        },
-        {
-            timestamps:true,
-        }
-    )
-
-export default mongoose.model("Patient",patientSchema)
+export default mongoose.model("Patient", patientSchema);

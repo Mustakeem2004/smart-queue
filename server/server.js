@@ -1,139 +1,62 @@
+import http from "http";
 import express from "express"
 import cors from "cors"
 import connectDB from "./config/db.js";
-import patientRoute from "./routes/patientRoutes.js"
-import doctorRoute from "./routes/doctorRoutes.js"
+import doctorRoutes from "./routes/doctorRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 import redisClient from "./config/redis.js";
+import authRoutes from "./routes/authRoutes.js";
+import patientRoutes from "./routes/patientRoutes.js"
+import shiftRoutes from "./routes/shiftRoutes.js";
+import queueRoutes from "./routes/queueRoutes.js";
 import dotenv from "dotenv"
+import cookieParser from "cookie-parser";
+import { initSocket } from "./config/socket.js";
+// import { Server } from "socket.io";
 dotenv.config();
 
 const app=express();
 
+
+// Hum Express ko HTTP server ke saath attach kar rahe hain.
+const httpServer = http.createServer(app);
 app.use(express.json());
+app.use(cookieParser());
 app.use(cors({
     origin: "http://localhost:5173",
     credentials: true
 }))
 
-let nextToken = 1;
-let queue = [];
+initSocket(httpServer);
 
-app.use("/api/queue",patientRoute);
-app.use("/api/doc",doctorRoute);
 
-// app.post("/api/queue/join", (req, res) => {
-//   const { name } = req.body;
-
-//   const patient = {
-//     token: nextToken,
-//     name: name,
-//     status: "WAITING"
-//   };
-
-//   queue.push(patient);
-
-//   nextToken++;
-
-//   res.json({
-//     message: "Joined queue successfully",
-//     patient: patient
-//   });
+// Yahan Socket.IO ko hamare HTTP server ke saath connect kiya.
+// const io = new Server(httpServer, {
+//   cors: {
+//     origin: "http://localhost:5173",
+//     credentials: true,
+//   },
 // });
 
 
-// let currentToken = 0;
+// Jab React se koi user connect hota hai:
+// "connection"
+// event fire hota hai.
 
+// io.on("connection", (socket) => {
+//   console.log("Client connected:", socket.id);
 
-// app.post("/api/queue/next", (req, res) => {
-
-//   const InservicePatient = queue.find((patient) => {
-//     return patient.status === "IN_SERVICE";
-//   });
-
-//   if(InservicePatient){
-//      InservicePatient.status = "COMPLETED";
-//   }
-
-//   const nextPatient = queue.find((patient) => {
-//     return patient.status === "WAITING"
-//   }
-//   );
-
-//   if (!nextPatient) {
-//     return res.status(400).json({
-//       message: "No patients waiting"
-//     });
-//   }
-
-//   nextPatient.status = "IN_SERVICE";
-//   currentToken = nextPatient.token;
-
-//   res.json({
-//     message: "Patient called",
-//     currentToken: currentToken,
-//     patient: nextPatient
+//   socket.on("disconnect", () => {
+//     console.log("Client disconnected:", socket.id);
 //   });
 // });
 
-
-
-
-
-// app.get("/api/queue",(req,res)=>{
-//     res.json(queue);
-// })
-
-
-
-// app.get("/api/queue/status/:token",(req,res)=>{
-//         const userToken= Number(req.params.token);
-//         const patient = queue.find((q) => q.token === userToken);
-
-//         if (!patient) {
-//             return res.status(404).json({
-//             message: "Patient not found"
-//         });
-//         }
-//         const peopleAhead = queue.filter((q) => {
-//             return q.status === "WAITING" && q.token < userToken;
-//             }).length;
-
-//         res.json({
-//          token: patient.token,
-//          name: patient.name,
-//          status: patient.status,
-//          currentToken: currentToken,
-//          peopleAhead: peopleAhead
-//         });
-// })
-
-
-
-// app.post("/api/queue/cancel/:token",(req,res)=>{
-//     const userToken = Number(req.params.token);
-//     const patient=queue.find((q) => q.token===userToken);
-//     if(!patient){
-//         return res.status(404).json({"message" : "Patient not found"});
-//     }
-
-//     if(patient.status==="WAITING"){
-//         patient.status = "CANCELLED";
-//     }
-//     else{
-//         return res.status(400).json({"message" : "user is not in waiting"})
-//     }
-
-//     res.json({
-//        token: userToken,
-//        name:  patient.name,
-//        status: patient.status,
-//        currentToken: currentToken
-//     })
-
-    
-// })
-
-
+app.use("/api/patient",patientRoutes);
+app.use("/api/doctor", doctorRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/shift", shiftRoutes);
+app.use("/api/queue", queueRoutes);
 
 
 
@@ -145,7 +68,7 @@ const startServer = async () =>{
     await redisClient.connect();
     console.log("Redis connected");
 
-    app.listen(8000, () => {
+    httpServer.listen(8000, () => {
       console.log(`Server running on port 8000`);
     });
   }

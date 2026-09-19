@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { io } from "socket.io-client";
 
 const DoctorQueue = () => {
 
@@ -11,9 +12,7 @@ const DoctorQueue = () => {
 
   const hasWaitingPatient = queue.some((q) => q.status === "WAITING");
 
-
-  useEffect( ()=>{
-      const fetchQueue = async () =>{
+    const fetchQueue = async () =>{
        try{
         setQueueLoading(true);
         const response= await fetch("http://localhost:8000/api/doc/queue");
@@ -30,45 +29,61 @@ const DoctorQueue = () => {
             setQueueLoading(false);
         }
     }
+
+
+useEffect(() => {
+  const socket = io("http://localhost:8000");
+
+  socket.on("connect", () => {
+    console.log("Doctor socket connected:", socket.id);
+  });
+
+  socket.on("queueUpdated", () => {
+    console.log("Queue updated received by doctor");
+    fetchQueue();
+  });
+
+  return () => {
+    socket.off("connect");
+    socket.off("queueUpdated");
+    socket.disconnect();
+  };
+}, []);
+
+
+  useEffect( ()=>{
+
     fetchQueue();
 
 
   },[]);
 
 
-  const handleNext = async () =>{
-        try{
-          setNextError("");
-          setNextLoading(true);
-        
-        const response= await fetch("http://localhost:8000/api/doc/next",{
-            method: "POST",
-        });
+const handleNext = async () => {
+  try {
+    setNextError("");
+    setNextLoading(true);
 
-        if(!response.ok){
-            throw new Error("Can't get next - Please try again");
-        }
-        const result=await response.json();
-        setCurrentToken(result.currentToken);
+    const response = await fetch(
+      "http://localhost:8000/api/doc/next",
+      {
+        method: "POST",
+      }
+    );
 
-        
+    if (!response.ok) {
+      throw new Error("Can't get next - Please try again");
+    }
 
+    const result = await response.json();
 
-        const response2= await fetch("http://localhost:8000/api/doc/queue");
-        if(!response2.ok){
-            throw new Error("Can't fetch queue Please try again");
-        }
-
-        const result2=await response2.json();
-        setQueue(result2);  
-        }
-        catch(e){
-            setNextError(e.message);
-        }
-        finally{
-            setNextLoading(false);
-        }
+    setCurrentToken(result.currentToken);
+  } catch (e) {
+    setNextError(e.message);
+  } finally {
+    setNextLoading(false);
   }
+};
 
   return (
     <div>
