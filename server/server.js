@@ -7,8 +7,9 @@ import userRoutes from "./routes/userRoutes.js";
 import redisClient from "./config/redis.js";
 import authRoutes from "./routes/authRoutes.js";
 import patientRoutes from "./routes/patientRoutes.js"
-import shiftRoutes from "./routes/shiftRoutes.js";
+import scheduleRoutes from "./routes/scheduleRoutes.js";
 import queueRoutes from "./routes/queueRoutes.js";
+import hospitalRoutes from "./routes/hospitalRoutes.js"
 import dotenv from "dotenv"
 import cookieParser from "cookie-parser";
 import { initSocket } from "./config/socket.js";
@@ -50,13 +51,13 @@ initSocket(httpServer);
 //     console.log("Client disconnected:", socket.id);
 //   });
 // });
-
+app.use("/api/hospital",hospitalRoutes);
 app.use("/api/patient",patientRoutes);
 app.use("/api/doctor", doctorRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/shift", shiftRoutes);
 app.use("/api/queue", queueRoutes);
+app.use("/api/schedule", scheduleRoutes);
 
 
 

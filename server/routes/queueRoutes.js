@@ -4,7 +4,10 @@ import {
     getQueues,
     getQueueById,
     closeQueue,
-    joinQueue
+    joinQueue,
+    nextPatient,
+    completePatient,
+    skipPatient
 } from "../controllers/queueController.js";
 
 import { protect } from "../middleware/authMiddleware.js";
@@ -61,6 +64,42 @@ router.patch(
 router.post(
     "/:queueId/join",
     joinQueue
+);
+
+
+router.post(
+    "/:queueId/next",
+    protect,
+    authorize(
+        "PLATFORM_ADMIN",
+        "HOSPITAL_ADMIN",
+        "RECEPTIONIST"
+    ),
+    nextPatient
+);
+
+
+router.patch(
+    "/:queueId/complete/:visitId",
+    protect,
+    authorize(
+        "PLATFORM_ADMIN",
+        "HOSPITAL_ADMIN",
+        "RECEPTIONIST"
+    ),
+    completePatient
+);
+
+
+router.patch(
+    "/:queueId/skip/:visitId",
+    protect,
+    authorize(
+        "PLATFORM_ADMIN",
+        "HOSPITAL_ADMIN",
+        "RECEPTIONIST"
+    ),
+    skipPatient
 );
 
 export default router;

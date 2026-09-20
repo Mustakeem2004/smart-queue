@@ -14,9 +14,9 @@ const queueSchema = new mongoose.Schema(
             required: true
         },
 
-        shiftId: {
+        scheduleId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Shift",
+            ref: "Schedule",
             required: true
         },
 
@@ -27,12 +27,13 @@ const queueSchema = new mongoose.Schema(
 
         status: {
             type: String,
-            enum: ["SCHEDULED", "OPEN", "CLOSED"],
-            default: "SCHEDULED"
+            enum: ["OPEN", "CLOSED"],
+            default: "OPEN"
         },
 
         openedAt: {
-            type: Date
+            type: Date,
+            default: Date.now
         },
 
         closedAt: {

@@ -1,12 +1,14 @@
 import express from "express";
+
 import {
-    createShift,
-    getShifts,
-    getShiftById,
-    updateShift,
-    openShift,
-    closeShift
-} from "../controllers/shiftController.js";
+    createSchedule,
+    getSchedules,
+    getScheduleById,
+    updateSchedule,
+    deactivateSchedule,
+    activateSchedule
+} from "../controllers/scheduleController.js";
+
 import { protect } from "../middleware/authMiddleware.js";
 import { authorize } from "../middleware/roleMiddleware.js";
 
@@ -17,11 +19,11 @@ router.post(
     protect,
     authorize(
         "PLATFORM_ADMIN",
-        "HOSPITAL_ADMIN"
+        "HOSPITAL_ADMIN",
+        "RECEPTIONIST"
     ),
-    createShift
+    createSchedule
 );
-
 
 router.get(
     "/",
@@ -31,8 +33,9 @@ router.get(
         "HOSPITAL_ADMIN",
         "RECEPTIONIST"
     ),
-    getShifts
+    getSchedules
 );
+
 
 router.get(
     "/:id",
@@ -42,7 +45,7 @@ router.get(
         "HOSPITAL_ADMIN",
         "RECEPTIONIST"
     ),
-    getShiftById
+    getScheduleById
 );
 
 
@@ -53,31 +56,29 @@ router.patch(
         "PLATFORM_ADMIN",
         "HOSPITAL_ADMIN"
     ),
-    updateShift
+    updateSchedule
 );
 
 
 router.patch(
-    "/:id/open",
+    "/:id/deactivate",
     protect,
     authorize(
         "PLATFORM_ADMIN",
-        "HOSPITAL_ADMIN",
-        "RECEPTIONIST"
+        "HOSPITAL_ADMIN"
     ),
-    openShift
+    deactivateSchedule
 );
 
 
 router.patch(
-    "/:id/close",
+    "/:id/activate",
     protect,
     authorize(
         "PLATFORM_ADMIN",
-        "HOSPITAL_ADMIN",
-        "RECEPTIONIST"
+        "HOSPITAL_ADMIN"
     ),
-    closeShift
+    activateSchedule
 );
 
 export default router;

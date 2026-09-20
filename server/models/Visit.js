@@ -26,12 +26,6 @@ const visitSchema = new mongoose.Schema(
             required: true
         },
 
-        shiftId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Shift",
-            required: true
-        },
-
         token: {
             type: String,
             required: true

@@ -1,5 +1,4 @@
-
-import Hospital from "../models/Hospital";
+import Hospital from "../models/Hospital.js";
 
 
 

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const shiftSchema = new mongoose.Schema(
+const scheduleSchema = new mongoose.Schema(
     {
         hospitalId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -20,8 +20,8 @@ const shiftSchema = new mongoose.Schema(
             trim: true
         },
 
-        date: {
-            type: Date,
+        daysOfWeek: {
+            type: [Number],
             required: true
         },
 
@@ -35,18 +35,9 @@ const shiftSchema = new mongoose.Schema(
             required: true
         },
 
-        status: {
-            type: String,
-            enum: ["SCHEDULED", "OPEN", "CLOSED"],
-            default: "SCHEDULED"
-        },
-
-        openedAt: {
-            type: Date
-        },
-
-        closedAt: {
-            type: Date
+        isActive: {
+            type: Boolean,
+            default: true
         }
     },
     {
@@ -54,4 +45,4 @@ const shiftSchema = new mongoose.Schema(
     }
 );
 
-export default mongoose.model("Shift", shiftSchema);
+export default mongoose.model("Schedule", scheduleSchema);
