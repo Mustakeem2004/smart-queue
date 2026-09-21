@@ -20,6 +20,12 @@ const queueSchema = new mongoose.Schema(
             required: true
         },
 
+        // 🔐 Doctor ke secure link ka hashed token
+        doctorAccessTokenHash: {
+            type: String,
+            required: true
+        },
+
         date: {
             type: Date,
             required: true

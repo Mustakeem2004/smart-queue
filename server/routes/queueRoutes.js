@@ -7,7 +7,12 @@ import {
     joinQueue,
     nextPatient,
     completePatient,
-    skipPatient
+    skipPatient,
+    getDoctorQueue,
+    doctorNextPatient,
+    doctorCompletePatient,
+    doctorSkipPatient,
+    rotateDoctorAccessToken
 } from "../controllers/queueController.js";
 
 import { protect } from "../middleware/authMiddleware.js";
@@ -100,6 +105,45 @@ router.patch(
         "RECEPTIONIST"
     ),
     skipPatient
+);
+
+
+
+router.get(
+    "/doctor/:token",
+    doctorRateLimit,
+    getDoctorQueue
+);
+
+
+router.post(
+    "/doctor/:token/next",
+    doctorRateLimit,
+    doctorNextPatient
+);
+
+router.patch(
+    "/doctor/:token/complete/:visitId",
+    doctorRateLimit,
+    doctorCompletePatient
+);
+
+router.patch(
+    "/doctor/:token/skip/:visitId",
+    doctorRateLimit,
+    doctorSkipPatient
+);
+
+
+router.patch(
+    "/:queueId/doctor-token/rotate",
+    protect,
+    authorize(
+        "PLATFORM_ADMIN",
+        "HOSPITAL_ADMIN",
+        "RECEPTIONIST"
+    ),
+    rotateDoctorAccessToken
 );
 
 export default router;
